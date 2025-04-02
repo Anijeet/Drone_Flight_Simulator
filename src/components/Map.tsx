@@ -9,7 +9,8 @@ interface MapProps {
   apiKey: string;
 }
 
-const Map: React.FC<MapProps> = ({ apiKey }) => {
+// Renamed from Map to MapComponent to avoid naming conflict with JavaScript's Map
+const MapComponent: React.FC<MapProps> = ({ apiKey }) => {
   const mapRef = useRef<HTMLDivElement>(null);
   const googleMapRef = useRef<google.maps.Map | null>(null);
   const markersRef = useRef<Map<string, google.maps.Marker>>(new Map());
@@ -272,4 +273,4 @@ const Map: React.FC<MapProps> = ({ apiKey }) => {
   );
 };
 
-export default Map;
+export default MapComponent;

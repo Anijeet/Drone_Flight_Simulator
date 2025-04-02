@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { SimulationProvider } from '@/context/SimulationContext';
-import Map from '@/components/Map';
+import MapComponent from '@/components/Map';
 import SimulationControls from '@/components/SimulationControls';
 import PathManager from '@/components/PathManager';
 import DroneManager from '@/components/DroneManager';
@@ -25,7 +25,7 @@ const Index = () => {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div className="lg:col-span-2 space-y-6">
               <div className="h-[600px] bg-card rounded-lg shadow-lg overflow-hidden">
-                <Map apiKey={apiKey} />
+                <MapComponent apiKey={apiKey} />
               </div>
               
               <SimulationControls />

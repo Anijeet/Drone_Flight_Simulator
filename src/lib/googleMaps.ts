@@ -29,7 +29,7 @@ export const geocodeAddress = async (address: string): Promise<google.maps.LatLn
   try {
     const response = await new Promise<google.maps.GeocoderResponse>((resolve, reject) => {
       geocoder.geocode({ address }, (results, status) => {
-        if (status === google.maps.GeocoderStatus.OK && results?.[0]) {
+        if (status === 'OK' && results?.[0]) {
           resolve(results);
         } else {
           reject(status);
