@@ -23,9 +23,27 @@ declare namespace google.maps {
     controls: Array<MVCArray<Node>>;
     setCenter(position: LatLng | LatLngLiteral): void;
     setZoom(zoom: number): void;
+    getZoom(): number;
     fitBounds(bounds: LatLngBounds): void;
+    panTo(position: LatLng | LatLngLiteral): void;
     addListener(event: string, handler: Function): MapsEventListener;
   }
+
+  // Add ControlPosition enum
+  const ControlPosition: {
+    TOP_LEFT: number;
+    TOP_CENTER: number;
+    TOP_RIGHT: number;
+    LEFT_TOP: number;
+    LEFT_CENTER: number;
+    LEFT_BOTTOM: number;
+    RIGHT_TOP: number;
+    RIGHT_CENTER: number;
+    RIGHT_BOTTOM: number;
+    BOTTOM_LEFT: number;
+    BOTTOM_CENTER: number;
+    BOTTOM_RIGHT: number;
+  };
 
   class LatLng {
     constructor(lat: number, lng: number);
@@ -42,6 +60,7 @@ declare namespace google.maps {
   class Marker {
     constructor(opts?: MarkerOptions);
     setPosition(position: LatLng | LatLngLiteral): void;
+    getPosition(): LatLng | null;
     setMap(map: Map | null): void;
   }
 
