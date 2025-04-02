@@ -1,9 +1,10 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import { useSimulation } from '@/context/SimulationContext';
-import { loadGoogleMapsScript } from '@/lib/googleMaps';
+import { loadGoogleMapsScript, animateMarker } from '@/lib/googleMaps';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
+import { Locate, Eye } from 'lucide-react';
 
 interface MapProps {
   apiKey: string;
@@ -16,13 +17,16 @@ const MapComponent: React.FC<MapProps> = ({ apiKey }) => {
   const markersRef = useRef<Map<string, google.maps.Marker>>(new Map());
   const pathsRef = useRef<Map<string, google.maps.Polyline>>(new Map());
   const [isLoaded, setIsLoaded] = useState(false);
+  const [trackDrone, setTrackDrone] = useState(false);
+  const [trackingDroneId, setTrackingDroneId] = useState<string | null>(null);
   const { toast } = useToast();
 
   const { 
     paths, 
     drones, 
     addPath,
-    simulation
+    simulation,
+    selectedDroneId
   } = useSimulation();
 
   // Load Google Maps API
@@ -186,7 +190,29 @@ const MapComponent: React.FC<MapProps> = ({ apiKey }) => {
       // Implement logic to add waypoint to a path
     });
 
+    // Set initial bounds if we have paths
+    if (paths.length > 0) {
+      fitMapToAllPaths();
+    }
+
   }, [isLoaded, toast]);
+
+  // Track selected drone when tracking is enabled
+  useEffect(() => {
+    if (trackDrone && trackingDroneId && googleMapRef.current) {
+      const droneToTrack = drones.find(drone => drone.id === trackingDroneId);
+      if (droneToTrack) {
+        googleMapRef.current.panTo(droneToTrack.position);
+      }
+    }
+  }, [drones, trackDrone, trackingDroneId]);
+
+  // Update drone tracking when selected drone changes
+  useEffect(() => {
+    if (selectedDroneId && trackDrone) {
+      setTrackingDroneId(selectedDroneId);
+    }
+  }, [selectedDroneId]);
 
   // Update paths on the map
   useEffect(() => {
@@ -213,6 +239,11 @@ const MapComponent: React.FC<MapProps> = ({ apiKey }) => {
 
       pathsRef.current.set(path.id, polyline);
     });
+
+    // Fit map to show all paths when paths change
+    if (paths.length > 0) {
+      fitMapToAllPaths();
+    }
   }, [isLoaded, paths]);
 
   // Update drone markers
@@ -240,8 +271,8 @@ const MapComponent: React.FC<MapProps> = ({ apiKey }) => {
         });
         markersRef.current.set(drone.id, marker);
       } else {
-        // Update marker position
-        marker.setPosition(drone.position);
+        // Use smooth animation for marker position updates
+        animateMarker(marker, drone.position, googleMapRef.current, 100);
       }
     });
 
@@ -252,15 +283,101 @@ const MapComponent: React.FC<MapProps> = ({ apiKey }) => {
         markersRef.current.delete(id);
       }
     });
-  }, [isLoaded, drones]);
+
+    // Track selected drone if tracking is enabled
+    if (trackDrone && trackingDroneId) {
+      const droneToTrack = drones.find(drone => drone.id === trackingDroneId);
+      if (droneToTrack && googleMapRef.current) {
+        googleMapRef.current.panTo(droneToTrack.position);
+      }
+    }
+  }, [isLoaded, drones, trackDrone, trackingDroneId]);
+
+  // Function to fit map view to show all paths
+  const fitMapToAllPaths = () => {
+    if (!googleMapRef.current) return;
+    
+    const bounds = new google.maps.LatLngBounds();
+    let hasCoordinates = false;
+
+    paths.forEach(path => {
+      path.coordinates.forEach(coord => {
+        bounds.extend(coord);
+        hasCoordinates = true;
+      });
+    });
+
+    if (hasCoordinates) {
+      googleMapRef.current.fitBounds(bounds);
+      
+      // Add some padding
+      const zoom = googleMapRef.current.getZoom();
+      if (zoom !== undefined && zoom > 15) {
+        googleMapRef.current.setZoom(15);
+      }
+    }
+  };
+
+  const toggleDroneTracking = () => {
+    if (!trackDrone) {
+      // Enable tracking
+      setTrackDrone(true);
+      // Use selected drone or first drone
+      const droneId = selectedDroneId || (drones.length > 0 ? drones[0].id : null);
+      setTrackingDroneId(droneId);
+      
+      if (droneId) {
+        toast({
+          title: "Drone tracking enabled",
+          description: `Now tracking ${drones.find(d => d.id === droneId)?.name || 'drone'}`,
+        });
+      } else {
+        toast({
+          title: "Cannot track drones",
+          description: "No drones available to track",
+          variant: "destructive",
+        });
+        setTrackDrone(false);
+      }
+    } else {
+      // Disable tracking
+      setTrackDrone(false);
+      toast({
+        title: "Drone tracking disabled",
+      });
+    }
+  };
 
   return (
-    <div className="h-full w-full rounded-lg overflow-hidden shadow-lg">
+    <div className="h-full w-full rounded-lg overflow-hidden shadow-lg relative">
       <div 
         ref={mapRef} 
         className="h-full w-full" 
         style={{ minHeight: '500px' }}
       />
+      
+      {/* Map controls */}
+      <div className="absolute top-4 right-4 flex flex-col gap-2">
+        <Button
+          variant={trackDrone ? "default" : "outline"}
+          size="icon"
+          title={trackDrone ? "Disable drone tracking" : "Enable drone tracking"}
+          onClick={toggleDroneTracking}
+          className="bg-background/80 hover:bg-background/90"
+        >
+          <Eye className="h-4 w-4" />
+        </Button>
+        <Button
+          variant="outline"
+          size="icon"
+          title="Fit map to all paths"
+          onClick={fitMapToAllPaths}
+          className="bg-background/80 hover:bg-background/90"
+        >
+          <Locate className="h-4 w-4" />
+        </Button>
+      </div>
+      
       {!isLoaded && (
         <div className="absolute inset-0 flex items-center justify-center bg-background/80">
           <div className="text-center">

@@ -54,3 +54,41 @@ export const createPath = (coordinates: google.maps.LatLngLiteral[]): google.map
     strokeWeight: 2
   });
 };
+
+// New helper to update a marker position smoothly
+export const animateMarker = (
+  marker: google.maps.Marker,
+  newPosition: google.maps.LatLngLiteral,
+  map: google.maps.Map | null,
+  duration: number = 500
+): void => {
+  if (!map) return;
+  
+  const startPosition = marker.getPosition();
+  if (!startPosition) {
+    marker.setPosition(newPosition);
+    return;
+  }
+  
+  const startTime = performance.now();
+  const startLat = startPosition.lat();
+  const startLng = startPosition.lng();
+  const latDiff = newPosition.lat - startLat;
+  const lngDiff = newPosition.lng - startLng;
+  
+  const animate = (currentTime: number) => {
+    const elapsed = currentTime - startTime;
+    const progress = Math.min(elapsed / duration, 1);
+    
+    const currentLat = startLat + latDiff * progress;
+    const currentLng = startLng + lngDiff * progress;
+    
+    marker.setPosition({ lat: currentLat, lng: currentLng });
+    
+    if (progress < 1) {
+      requestAnimationFrame(animate);
+    }
+  };
+  
+  requestAnimationFrame(animate);
+};
